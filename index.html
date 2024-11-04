@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Procesar Archivo</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
+
 <body>
-    
+
     <div class="container mt-5">
         <h1 class="mb-4">Procesar Archivo</h1>
 
         <div class="form-group col-md-6">
             <label for="fileInput">Selecciona los archivos a procesar:</label>
             <div class="custom-file">
-                <input type="file" class="custom-file-input" id="fileInput" accept=".txt" multiple/>
+                <input type="file" class="custom-file-input" id="fileInput" accept=".txt" multiple />
                 <label class="custom-file-label" for="fileInput">Elige los archivos...</label>
             </div>
         </div>
@@ -22,7 +24,7 @@
         <div class="form-group col-md-6">
             <label for="stopWordsInput">Selecciona el archivo de palabras de parada:</label>
             <div class="custom-file">
-                <input type="file" class="custom-file-input" id="stopWordsInput" accept=".txt"/>
+                <input type="file" class="custom-file-input" id="stopWordsInput" accept=".txt" />
                 <label class="custom-file-label" for="stopWordsInput">Elige un archivo...</label>
             </div>
         </div>
@@ -30,7 +32,7 @@
         <div class="form-group col-md-6">
             <label for="lemmatizationInput">Selecciona el archivo de lematización:</label>
             <div class="custom-file">
-                <input type="file" class="custom-file-input" id="lemmatizationInput" accept=".txt"/>
+                <input type="file" class="custom-file-input" id="lemmatizationInput" accept=".txt" />
                 <label class="custom-file-label" for="lemmatizationInput">Elige un archivo...</label>
             </div>
         </div>
@@ -41,7 +43,9 @@
     </div>
 
     <script>
-         document.getElementById("fileInput").addEventListener("change", function () {
+        // Actualiza la etiqueta del archivo seleccionado
+        document.getElementById("fileInput").addEventListener("change", function () {
+            const fileName = this.files[0] ? this.files[0].name : "Elige un archivo...";
             const label = this.nextElementSibling;
             label.innerText = this.files.length ? `${this.files.length} archivos seleccionados` : "Elige un archivo...";
         });
@@ -62,7 +66,7 @@
                 this.lemmatizationDict = {};
                 this.resultados = {};
                 this.total = 0;
-                this.idf = {}; 
+                this.idf = {};
             }
 
             cargarStopWords(content) {
@@ -101,38 +105,46 @@
             }
 
             calcularIDF(documentos) {
-            const N = documentos.length;
-            const documentoFrecuencia = {};
+                const N = documentos.length;
+                const documentoFrecuencia = {};
 
-            // Verifica que el número de documentos sea mayor que 0
-            if (N === 0) {
-                console.log("No se encontraron documentos para procesar.");
-                return;
-            }
-            console.log(`Número total de documentos: ${N}`);
+                // Verifica que el número de documentos sea mayor que 0
+                if (N === 0) {
+                    console.log("No se encontraron documentos para procesar.");
+                    return;
+                }
+                console.log(`Número total de documentos: ${N}`);
 
-            documentos.forEach((content, index) => {
-                const palabrasUnicas = new Set(
-                    content.replace(/[.,;!?()""]/g, '').split(/\s+/).map(palabra => this.lematizar(palabra.toLowerCase())).filter(Boolean)
-                );
+                documentos.forEach((content, index) => {
+                    const palabrasUnicas = new Set(
+                        content.replace(/[.,;!?()""]/g, '').split(/\s+/).map(palabra => this.lematizar(palabra.toLowerCase())).filter(Boolean)
+                    );
 
-                palabrasUnicas.forEach(palabra => {
-                    if (!this.esStopWord(palabra)) {
-                        documentoFrecuencia[palabra] = (documentoFrecuencia[palabra] || 0) + 1;
-                    }
+                    palabrasUnicas.forEach(palabra => {
+                        if (!this.esStopWord(palabra)) {
+                            documentoFrecuencia[palabra] = (documentoFrecuencia[palabra] || 0) + 1;
+                        }
+                    });
                 });
-            });
 
-            console.log("Frecuencia de cada palabra en los documentos:", documentoFrecuencia);
+                console.log("Frecuencia de cada palabra en los documentos:", documentoFrecuencia);
 
-            for (const [palabra, dfx] of Object.entries(documentoFrecuencia)) {
-                this.idf[palabra] = Math.log(N / dfx);
-                console.log(`Palabra: ${palabra}, dfx: ${dfx}, IDF: ${this.idf[palabra]}`);
+                for (const [palabra, dfx] of Object.entries(documentoFrecuencia)) {
+                    this.idf[palabra] = Math.log(N / dfx);
+                    console.log(`Palabra: ${palabra}, dfx: ${dfx}, IDF: ${this.idf[palabra]}`);
+                }
+
+                console.log("IDF Calculado:", this.idf);
             }
-
-            console.log("IDF Calculado:", this.idf);
+            calcularFrecuencias() {
+                for (const palabra in this.resultados) {
+                    const count = this.resultados[palabra].count;
+                    const frecuencia = 1 + Math.log(count);
+                    this.resultados[palabra].frecuencia = frecuencia; // Agregar frecuencia al resultado
+                }
+            }
         }
-    }
+
 
         const palabrasManager = new PalabrasManager();
 
@@ -191,4 +203,5 @@
         });
     </script>
 </body>
+
 </html>
