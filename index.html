@@ -65,6 +65,7 @@
                 this.idf = {};
                 this.documentos = [];
                 this.tfIdfVectors = [];
+                this.similitudesCoseno = [];
             }
 
             cargarStopWords(content) {
@@ -98,8 +99,8 @@
                     }
                 });
 
-                this.resultados = resultadosDoc;  // Almacena el conteo de términos para este documento
-                this.calcularTF();  // Calcula TF para este documento
+                this.resultados = resultadosDoc;
+                this.calcularTF();
                 return resultadosDoc;
             }
 
@@ -109,7 +110,6 @@
                     const frecuencia = 1 + Math.log(count);
                     this.resultados[palabra].frecuencia = frecuencia;
                 }
-                console.log("TF Calculado para cada palabra:", this.resultados);
             }
 
             calcularIDF(documentos) {
@@ -131,7 +131,6 @@
                 for (const palabra in documentoFrecuencia) {
                     this.idf[palabra] = Math.log(N / documentoFrecuencia[palabra]);
                 }
-                console.log("IDF Calculado:", this.idf);
             }
 
             calcularTFIDFNormalizado(resultadosDoc) {
@@ -151,7 +150,6 @@
             }
 
             calcularSimilitudCoseno() {
-                const similitudes = [];
                 for (let i = 0; i < this.tfIdfVectors.length; i++) {
                     for (let j = i + 1; j < this.tfIdfVectors.length; j++) {
                         const vectorA = this.tfIdfVectors[i];
@@ -171,11 +169,33 @@
                         });
 
                         const similitud = productoPunto / (Math.sqrt(magnitudA) * Math.sqrt(magnitudB));
-                        similitudes.push({ docA: i + 1, docB: j + 1, similitud });
+                        this.similitudesCoseno.push({ docA: i + 1, docB: j + 1, similitud });
                     }
                 }
-                console.log("Similitud Coseno entre documentos:", similitudes);
-                return similitudes;
+            }
+
+            generarJsonSalida() {
+                const salida = {
+                    documentos: this.documentos.map((resultadosDoc, docIndex) => ({
+                        documento: docIndex + 1,
+                        terminos: Object.keys(resultadosDoc).map((termino, idx) => ({
+                            indice: idx + 1,
+                            termino: termino,
+                            TF: resultadosDoc[termino].frecuencia,
+                            IDF: this.idf[termino] || 0,
+                            TF_IDF: resultadosDoc[termino].frecuencia * (this.idf[termino] || 0)
+                        }))
+                    })),
+                    similitudesCoseno: this.similitudesCoseno
+                };
+
+                const blob = new Blob([JSON.stringify(salida, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "salida.json";
+                a.click();
+                URL.revokeObjectURL(url);
             }
         }
 
@@ -201,46 +221,27 @@
                 lemmatizationReader.onload = function (event) {
                     palabrasManager.cargarLematizacion(event.target.result);
 
-                    Array.from(fileInput.files).forEach((file, index) => {
-                        const mainFileReader = new FileReader();
-                        mainFileReader.onload = function (event) {
-                            const mainFileContent = event.target.result;
-                            documentos.push(mainFileContent);
-
-                            const resultadosDoc = palabrasManager.procesarArchivo(mainFileContent);
-                            palabrasManager.documentos.push(resultadosDoc);
+                    Array.from(fileInput.files).forEach(file => {
+                        const fileReader = new FileReader();
+                        fileReader.onload = function (event) {
+                            documentos.push(event.target.result);
+                            palabrasManager.documentos.push(palabrasManager.procesarArchivo(event.target.result));
 
                             if (documentos.length === fileInput.files.length) {
                                 palabrasManager.calcularIDF(documentos);
-
-                                documentos.forEach((doc, idx) => {
-                                    const vectorNormalizado = palabrasManager.calcularTFIDFNormalizado(palabrasManager.documentos[idx]);
-                                    palabrasManager.tfIdfVectors.push(vectorNormalizado);
+                                documentos.forEach((content, index) => {
+                                    const tfIdfVector = palabrasManager.calcularTFIDFNormalizado(palabrasManager.documentos[index]);
+                                    palabrasManager.tfIdfVectors.push(tfIdfVector);
                                 });
-
                                 palabrasManager.calcularSimilitudCoseno();
+                                palabrasManager.generarJsonSalida();
                             }
                         };
-
-                        mainFileReader.onerror = function (event) {
-                            alert('Error al leer el archivo: ' + event.target.error.code);
-                        };
-
-                        mainFileReader.readAsText(file);
+                        fileReader.readAsText(file);
                     });
                 };
-
-                lemmatizationReader.onerror = function (event) {
-                    alert('Error al leer el archivo de lematización: ' + event.target.error.code);
-                };
-
                 lemmatizationReader.readAsText(lemmatizationInput.files[0]);
             };
-
-            stopWordsReader.onerror = function (event) {
-                alert('Error al leer el archivo de palabras de parada: ' + event.target.error.code);
-            };
-
             stopWordsReader.readAsText(stopWordsInput.files[0]);
         });
     </script>
