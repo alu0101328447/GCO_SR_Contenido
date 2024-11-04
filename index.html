@@ -9,7 +9,6 @@
 </head>
 
 <body>
-
     <div class="container mt-5">
         <h1 class="mb-4">Procesar Archivo</h1>
 
@@ -63,8 +62,8 @@
                 this.stopWords = [];
                 this.lemmatizationDict = {};
                 this.resultados = {};
-                this.total = 0;
                 this.idf = {};
+                this.documentos = [];
             }
 
             cargarStopWords(content) {
@@ -84,33 +83,37 @@
             }
 
             procesarArchivo(content) {
+                const resultadosDoc = {};
                 const palabras = content.replace(/[.,;!?()""]/g, '').split(/\s+/).filter(Boolean);
-                this.total = 0;
 
-                palabras.forEach((palabra, indice) => {
+                palabras.forEach(palabra => {
                     const palabraLower = palabra.toLowerCase();
-
                     if (!this.esStopWord(palabraLower)) {
                         const lematizada = this.lematizar(palabraLower);
-
-                        if (!this.resultados[lematizada]) {
-                            this.resultados[lematizada] = { count: 0, index: indice };
+                        if (!resultadosDoc[lematizada]) {
+                            resultadosDoc[lematizada] = { count: 0 };
                         }
-                        this.resultados[lematizada].count += 1;
-                        this.total++;
+                        resultadosDoc[lematizada].count += 1;
                     }
                 });
+
+                this.resultados = resultadosDoc;  // Almacena el conteo de términos para este documento
+                this.calcularTF();  // Calcula TF para este documento
+                return resultadosDoc;
+            }
+
+            calcularTF() {
+                for (const palabra in this.resultados) {
+                    const count = this.resultados[palabra].count;
+                    const frecuencia = 1 + Math.log(count);
+                    this.resultados[palabra].frecuencia = frecuencia;
+                }
+                console.log("TF Calculado para cada palabra:", this.resultados);
             }
 
             calcularIDF(documentos) {
                 const N = documentos.length;
                 const documentoFrecuencia = {};
-
-                if (N === 0) {
-                    console.log("No se encontraron documentos para procesar.");
-                    return;
-                }
-                console.log(`Número total de documentos: ${N}`);
 
                 documentos.forEach(content => {
                     const palabrasUnicas = new Set(
@@ -124,25 +127,32 @@
                     });
                 });
 
-                for (const [palabra, dfx] of Object.entries(documentoFrecuencia)) {
-                    this.idf[palabra] = Math.log(N / dfx);
-                    //console.log(`Palabra: ${palabra}, dfx: ${dfx}, IDF: ${this.idf[palabra]}`);
+                for (const palabra in documentoFrecuencia) {
+                    this.idf[palabra] = Math.log(N / documentoFrecuencia[palabra]);
                 }
+                console.log("IDF Calculado:", this.idf);
             }
 
-            calcularTF() {
-                for (const palabra in this.resultados) {
-                    const count = this.resultados[palabra].count;
-                    const frecuencia = 1 + Math.log(count);
-                    this.resultados[palabra].frecuencia = frecuencia;
+            calcularTFIDFNormalizado(resultadosDoc) {
+                const tfIdfVector = {};
+                for (const palabra in resultadosDoc) {
+                    const tf = resultadosDoc[palabra].frecuencia;
+                    const idf = this.idf[palabra] || 0;
+                    tfIdfVector[palabra] = tf * idf;
                 }
-                console.log("TF Calculado para cada palabra:", this.resultados);
+
+                const magnitud = Math.sqrt(Object.values(tfIdfVector).reduce((sum, value) => sum + value * value, 0));
+                for (const palabra in tfIdfVector) {
+                    tfIdfVector[palabra] /= magnitud;
+                }
+
+                return tfIdfVector;
             }
         }
 
         const palabrasManager = new PalabrasManager();
 
-        document.getElementById('processButton').addEventListener('click', function() {
+        document.getElementById('processButton').addEventListener('click', function () {
             const stopWordsInput = document.getElementById('stopWordsInput');
             const lemmatizationInput = document.getElementById('lemmatizationInput');
             const fileInput = document.getElementById('fileInput');
@@ -155,29 +165,35 @@
             const documentos = [];
 
             const stopWordsReader = new FileReader();
-            stopWordsReader.onload = function(event) {
+            stopWordsReader.onload = function (event) {
                 palabrasManager.cargarStopWords(event.target.result);
 
                 const lemmatizationReader = new FileReader();
-                lemmatizationReader.onload = function(event) {
+                lemmatizationReader.onload = function (event) {
                     palabrasManager.cargarLematizacion(event.target.result);
 
                     Array.from(fileInput.files).forEach((file, index) => {
                         const mainFileReader = new FileReader();
-                        mainFileReader.onload = function(event) {
+                        mainFileReader.onload = function (event) {
                             const mainFileContent = event.target.result;
-
-                            palabrasManager.procesarArchivo(mainFileContent);
-                            palabrasManager.calcularTF(); // Calcular TF para cada archivo
                             documentos.push(mainFileContent);
 
+                            // Procesar archivo y calcular TF para el documento actual
+                            const resultadosDoc = palabrasManager.procesarArchivo(mainFileContent);
+                            palabrasManager.documentos.push(resultadosDoc);
+
+                            // Una vez que se procesan todos los documentos, calcular IDF y TF-IDF
                             if (documentos.length === fileInput.files.length) {
                                 palabrasManager.calcularIDF(documentos);
-                                console.log("Resultados IDF:", palabrasManager.idf);
+
+                                documentos.forEach((doc, idx) => {
+                                    const tfIdfVector = palabrasManager.calcularTFIDFNormalizado(palabrasManager.documentos[idx]);
+                                    console.log(`Vector TF-IDF normalizado para documento ${idx + 1}:`, tfIdfVector);
+                                });
                             }
                         };
 
-                        mainFileReader.onerror = function(event) {
+                        mainFileReader.onerror = function (event) {
                             alert('Error al leer el archivo: ' + event.target.error.code);
                         };
 
@@ -185,18 +201,18 @@
                     });
                 };
 
-                lemmatizationReader.onerror = function(event) {
+                lemmatizationReader.onerror = function (event) {
                     alert('Error al leer el archivo de lematización: ' + event.target.error.code);
                 };
 
-                lemmatizationReader.readAsText(lemmatizationInput.files[0]); 
+                lemmatizationReader.readAsText(lemmatizationInput.files[0]);
             };
 
-            stopWordsReader.onerror = function(event) {
+            stopWordsReader.onerror = function (event) {
                 alert('Error al leer el archivo de palabras de parada: ' + event.target.error.code);
             };
 
-            stopWordsReader.readAsText(stopWordsInput.files[0]); 
+            stopWordsReader.readAsText(stopWordsInput.files[0]);
         });
     </script>
 </body>
