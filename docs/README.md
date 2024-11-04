@@ -36,25 +36,24 @@ El objetivo de esta práctica es implementar un sistema de recomendación siguie
 
 # 3. Ejemplo de uso
 
-Para poder utilizar nuestra herramienta, debe acceder al siguente [enlace](falta ponerlo aun), 
-y en él, le aparecerá la sigiente pagina
+Para poder utilizar nuestra herramienta, debe acceder al siguente [enlace](falta ponerlo aun), y en él, le aparecerá la sigiente pagina
 
 ![imagen1](./imgs/img01.PNG)
 
-Desde ahi, debemos escoger uno de los ficheros de pruebas aportado en el siguiente [enlace](https://github.com/ull-cs/gestion-conocimiento/tree/main/recommeder-systems/examples-documents)
+Una vez en el, debemos introducir los 3 ficheros que se nos indican en la pagina, los cuales son:
+
+- **Archivo a procesar**, donde introducimos el fichero con el que queremos trabajar, se pueden obtener en el siguiente [enlace](https://github.com/ull-cs/gestion-conocimiento/tree/main/recommeder-systems/examples-documents)
+- **Stop-Words**, es un fichero que nos permite filtrar que palabras del texto se pueden saltar del calculo. Este fichero se puede conseguir en el siguiente [enlace](https://github.com/ull-cs/gestion-conocimiento/tree/main/recommeder-systems/stop-words)
+- **Corpus**, es un fichero que nos permite lematizar los terminos de nuestro texto, permitiendo que a la hora colocar las _palabras mayores_ no resulte en diferentes palabra que se refieren a lo mismo. Dicho fichero se puede obtener en el siguiente [enlace](https://github.com/ull-cs/gestion-conocimiento/tree/main/recommeder-systems/corpus) 
 
 > [!WARNING]  
 > En los tres archivos que vamos a introducir, se requiere que los tres esten escritos en el mismo idioma, para que la aplicación funcione correctamente.
 
 Tras ello, debemos completar las opciones que aparecen:
 
-- **Archivo a procesar**, donde introducimos el fichero con el que queremos trabajar
-- **Opcion de calculo**, donde se elige las diferentes opciones del calculo  
-- **Prediccion**, señala si se quiere realizar el calculo respecto a la diferencia con la media, o mediante una prediccion simple 
-
 Tras seleccionar los ajustes, se accede al calculo, y por un lado aparece la pantalla con el resultado del calculo
 
-![imagen2](./imgs/img2.png)
+![imagen2](falta por poner)
 
 Ademas de que automaticamente, se descarga un fichero con el contenido del calculo.
 
