@@ -101,26 +101,38 @@
             }
 
             calcularIDF(documentos) {
-                const N = documentos.length;
-                const documentoFrecuencia = {};
+            const N = documentos.length;
+            const documentoFrecuencia = {};
 
-                documentos.forEach(content => {
-                    const palabrasUnicas = new Set(content.replace(/[.,;!?()""]/g, '').split(/\s+/).map(palabra => this.lematizar(palabra.toLowerCase())).filter(Boolean));
-
-                    palabrasUnicas.forEach(palabra => {
-                        if (!this.esStopWord(palabra)) {
-                            documentoFrecuencia[palabra] = (documentoFrecuencia[palabra] || 0) + 1;
-                        }
-                    });
-                });
-
-                for (const [palabra, dfx] of Object.entries(documentoFrecuencia)) {
-                    this.idf[palabra] = Math.log(N / dfx);
-                }
-
-                console.log("IDF Calculado:", this.idf); 
+            // Verifica que el número de documentos sea mayor que 0
+            if (N === 0) {
+                console.log("No se encontraron documentos para procesar.");
+                return;
             }
+            console.log(`Número total de documentos: ${N}`);
+
+            documentos.forEach((content, index) => {
+                const palabrasUnicas = new Set(
+                    content.replace(/[.,;!?()""]/g, '').split(/\s+/).map(palabra => this.lematizar(palabra.toLowerCase())).filter(Boolean)
+                );
+
+                palabrasUnicas.forEach(palabra => {
+                    if (!this.esStopWord(palabra)) {
+                        documentoFrecuencia[palabra] = (documentoFrecuencia[palabra] || 0) + 1;
+                    }
+                });
+            });
+
+            console.log("Frecuencia de cada palabra en los documentos:", documentoFrecuencia);
+
+            for (const [palabra, dfx] of Object.entries(documentoFrecuencia)) {
+                this.idf[palabra] = Math.log(N / dfx);
+                console.log(`Palabra: ${palabra}, dfx: ${dfx}, IDF: ${this.idf[palabra]}`);
+            }
+
+            console.log("IDF Calculado:", this.idf);
         }
+    }
 
         const palabrasManager = new PalabrasManager();
 
