@@ -1,22 +1,20 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Procesar Archivo</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
-
 <body>
-
+    
     <div class="container mt-5">
         <h1 class="mb-4">Procesar Archivo</h1>
 
         <div class="form-group col-md-6">
             <label for="fileInput">Selecciona el archivo a procesar:</label>
             <div class="custom-file">
-                <input type="file" class="custom-file-input" id="fileInput" accept=".txt" />
+                <input type="file" class="custom-file-input" id="fileInput" accept=".txt"/>
                 <label class="custom-file-label" for="fileInput">Elige un archivo...</label>
             </div>
         </div>
@@ -24,7 +22,7 @@
         <div class="form-group col-md-6">
             <label for="stopWordsInput">Selecciona el archivo de palabras de parada:</label>
             <div class="custom-file">
-                <input type="file" class="custom-file-input" id="stopWordsInput" accept=".txt" />
+                <input type="file" class="custom-file-input" id="stopWordsInput" accept=".txt"/>
                 <label class="custom-file-label" for="stopWordsInput">Elige un archivo...</label>
             </div>
         </div>
@@ -32,11 +30,10 @@
         <div class="form-group col-md-6">
             <label for="lemmatizationInput">Selecciona el archivo de lematización:</label>
             <div class="custom-file">
-                <input type="file" class="custom-file-input" id="lemmatizationInput" accept=".txt" />
+                <input type="file" class="custom-file-input" id="lemmatizationInput" accept=".txt"/>
                 <label class="custom-file-label" for="lemmatizationInput">Elige un archivo...</label>
             </div>
         </div>
-
 
         <div class="form-group col-md-6">
             <button id="processButton" class="btn btn-primary">Procesar</button>
@@ -44,8 +41,8 @@
     </div>
 
     <script>
-        // Actualiza la etiqueta del archivo seleccionado
-        document.getElementById("fileInput").addEventListener("change", function () {
+         // Actualiza la etiqueta del archivo seleccionado
+         document.getElementById("fileInput").addEventListener("change", function () {
             const fileName = this.files[0] ? this.files[0].name : "Elige un archivo...";
             const label = this.nextElementSibling;
             label.innerText = fileName; // Cambia el texto del label al nombre del archivo
@@ -65,53 +62,57 @@
             label.innerText = fileName; // Cambia el texto del label al nombre del archivo
         });
 
-
-        let stopWords = [];
-        let lemmatizationDict = {};
-
-        // Función para cargar archivos de palabras de parada
-        function cargarStopWords(content) {
-            stopWords = content.split('\n').map(word => word.trim()).filter(Boolean); // Eliminar líneas vacías
-        }
-
-        // Función para cargar el diccionario de lematización
-        function cargarLematizacion(content) {
-            lemmatizationDict = JSON.parse(content);
-        }
-
-        // Función para comprobar si una palabra es una stop word
-        function esStopWord(palabra) {
-            return stopWords.includes(palabra);
-        }
-
-        // Función para lematizar una palabra
-        function lematizar(palabra) {
-            return lemmatizationDict[palabra] || palabra; // Retorna la palabra lematizada o la original
-        }
-
-        // Función para calcular la frecuencia de los términos y su TF
-        function calcularFrecuencia(palabras) {
-            const frecuencia = {}; // Objeto para almacenar la frecuencia de cada término
-
-            palabras.forEach(palabra => {
-                const palabraLower = palabra.toLowerCase(); // Convertir palabra a minúscula
-                if (!esStopWord(palabraLower)) { // Verificar si no es una stop word
-                    const lematizada = lematizar(palabraLower); // Lematizar la palabra
-                    frecuencia[lematizada] = (frecuencia[lematizada] || 0) + 1; // Contar la palabra lematizada
-                }
-            });
-
-            // Calcular TF para cada término
-            const tfResultados = {};
-            for (const [palabra, count] of Object.entries(frecuencia)) {
-                tfResultados[palabra] = 1 + Math.log(count); // Aplicar la fórmula de TF
+        class PalabrasManager {
+            constructor() {
+                this.stopWords = [];
+                this.lemmatizationDict = {};
+                this.resultados = {};
+                this.total = 0;
             }
 
-            return tfResultados; // Retornar el objeto con el TF
+            cargarStopWords(content) {
+                this.stopWords = content.split('\n').map(word => word.trim().toLowerCase()).filter(Boolean);
+            }
+
+            cargarLematizacion(content) {
+                this.lemmatizationDict = JSON.parse(content);
+            }
+
+            esStopWord(palabra) {
+                return this.stopWords.includes(palabra);
+            }
+
+            lematizar(palabra) {
+                return this.lemmatizationDict[palabra] || palabra;
+            }
+
+            procesarArchivo(content) {
+                // Elimina signos de puntuación excepto el apóstrofe y divide el contenido en palabras
+                const palabras = content.replace(/[.,;!?()""]/g, '').split(/\s+/).filter(Boolean); // Divide el contenido en palabras
+                this.total = 0;
+
+                palabras.forEach((palabra, indice) => {
+                    const palabraLower = palabra.toLowerCase(); // Convertir a minúscula
+
+                    // Comprobar si no es una stop word
+                    if (!this.esStopWord(palabraLower)) {
+                        const lematizada = this.lematizar(palabraLower);
+
+                        // Comprobar si la palabra lematizada ya existe en resultados
+                        if (!this.resultados[lematizada]) {
+                            this.resultados[lematizada] = { count: 0, index: indice }; // Guardar el índice de la primera aparición
+                        }
+                        this.resultados[lematizada].count += 1; // Incrementar el contador
+                        this.total ++;
+                    }
+                });
+            }
         }
 
-        // Modificar la sección del botón de procesar
-        document.getElementById('processButton').addEventListener('click', function () {
+        const palabrasManager = new PalabrasManager();
+
+        // Función que se ejecuta al pulsar el botón de procesar
+        document.getElementById('processButton').addEventListener('click', function() {
             const stopWordsInput = document.getElementById('stopWordsInput');
             const lemmatizationInput = document.getElementById('lemmatizationInput');
             const fileInput = document.getElementById('fileInput');
@@ -124,50 +125,45 @@
 
             // Cargar las palabras de parada
             const stopWordsReader = new FileReader();
-            stopWordsReader.onload = function (event) {
-                cargarStopWords(event.target.result); // Cargar stop words
+            stopWordsReader.onload = function(event) {
+                palabrasManager.cargarStopWords(event.target.result); // Cargar stop words
 
                 // Cargar el diccionario de lematización
                 const lemmatizationReader = new FileReader();
-                lemmatizationReader.onload = function (event) {
-                    cargarLematizacion(event.target.result); // Cargar lematización
+                lemmatizationReader.onload = function(event) {
+                    palabrasManager.cargarLematizacion(event.target.result); // Cargar lematización
 
                     // Procesar el archivo seleccionado
                     const mainFileReader = new FileReader();
-                    mainFileReader.onload = function (event) {
+                    mainFileReader.onload = function(event) {
                         const mainFileContent = event.target.result; // Contenido del archivo principal
-                        const palabras = mainFileContent.split(/\s+/); // Divide el contenido en palabras
-
-                        // Llamar a la función para calcular la frecuencia y TF
-                        const resultados = calcularFrecuencia(palabras);
-
-                        console.log(resultados); // Muestra el resultado en la consola
+                        palabrasManager.procesarArchivo(mainFileContent); // Procesar archivo
+                        console.log(palabrasManager.resultados); // Muestra el resultado en la consola
                     };
 
-                    mainFileReader.onerror = function (event) {
+                    mainFileReader.onerror = function(event) {
                         alert('Error al leer el archivo: ' + event.target.error.code);
                     };
 
                     // Leer el archivo principal
-                    mainFileReader.readAsText(fileInput.files[0]);
+                    mainFileReader.readAsText(fileInput.files[0]); 
                 };
 
-                lemmatizationReader.onerror = function (event) {
+                lemmatizationReader.onerror = function(event) {
                     alert('Error al leer el archivo de lematización: ' + event.target.error.code);
                 };
 
                 // Leer el archivo de lematización
-                lemmatizationReader.readAsText(lemmatizationInput.files[0]);
+                lemmatizationReader.readAsText(lemmatizationInput.files[0]); 
             };
 
-            stopWordsReader.onerror = function (event) {
+            stopWordsReader.onerror = function(event) {
                 alert('Error al leer el archivo de palabras de parada: ' + event.target.error.code);
             };
 
             // Leer el archivo de palabras de parada
-            stopWordsReader.readAsText(stopWordsInput.files[0]);
+            stopWordsReader.readAsText(stopWordsInput.files[0]); 
         });
     </script>
 </body>
-
 </html>
