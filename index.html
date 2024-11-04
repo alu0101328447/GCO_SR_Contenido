@@ -64,6 +64,7 @@
                 this.resultados = {};
                 this.idf = {};
                 this.documentos = [];
+                this.tfIdfVectors = [];
             }
 
             cargarStopWords(content) {
@@ -148,6 +149,34 @@
 
                 return tfIdfVector;
             }
+
+            calcularSimilitudCoseno() {
+                const similitudes = [];
+                for (let i = 0; i < this.tfIdfVectors.length; i++) {
+                    for (let j = i + 1; j < this.tfIdfVectors.length; j++) {
+                        const vectorA = this.tfIdfVectors[i];
+                        const vectorB = this.tfIdfVectors[j];
+
+                        const palabrasUnidas = new Set([...Object.keys(vectorA), ...Object.keys(vectorB)]);
+                        let productoPunto = 0;
+                        let magnitudA = 0;
+                        let magnitudB = 0;
+
+                        palabrasUnidas.forEach(palabra => {
+                            const valorA = vectorA[palabra] || 0;
+                            const valorB = vectorB[palabra] || 0;
+                            productoPunto += valorA * valorB;
+                            magnitudA += valorA * valorA;
+                            magnitudB += valorB * valorB;
+                        });
+
+                        const similitud = productoPunto / (Math.sqrt(magnitudA) * Math.sqrt(magnitudB));
+                        similitudes.push({ docA: i + 1, docB: j + 1, similitud });
+                    }
+                }
+                console.log("Similitud Coseno entre documentos:", similitudes);
+                return similitudes;
+            }
         }
 
         const palabrasManager = new PalabrasManager();
@@ -178,18 +207,18 @@
                             const mainFileContent = event.target.result;
                             documentos.push(mainFileContent);
 
-                            // Procesar archivo y calcular TF para el documento actual
                             const resultadosDoc = palabrasManager.procesarArchivo(mainFileContent);
                             palabrasManager.documentos.push(resultadosDoc);
 
-                            // Una vez que se procesan todos los documentos, calcular IDF y TF-IDF
                             if (documentos.length === fileInput.files.length) {
                                 palabrasManager.calcularIDF(documentos);
 
                                 documentos.forEach((doc, idx) => {
-                                    const tfIdfVector = palabrasManager.calcularTFIDFNormalizado(palabrasManager.documentos[idx]);
-                                    console.log(`Vector TF-IDF normalizado para documento ${idx + 1}:`, tfIdfVector);
+                                    const vectorNormalizado = palabrasManager.calcularTFIDFNormalizado(palabrasManager.documentos[idx]);
+                                    palabrasManager.tfIdfVectors.push(vectorNormalizado);
                                 });
+
+                                palabrasManager.calcularSimilitudCoseno();
                             }
                         };
 
