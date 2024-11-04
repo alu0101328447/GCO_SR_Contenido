@@ -36,26 +36,26 @@ El objetivo de esta práctica es implementar un sistema de recomendación siguie
 
 # 3. Ejemplo de uso
 
-Para poder utilizar nuestra herramienta, debe acceder al siguente [enlace](falta ponerlo aun), y en él, le aparecerá la sigiente pagina
+Para poder utilizar nuestra herramienta, debe acceder al siguente [enlace](https://alu0101328447.github.io/GCO_SR_Contenido/), y en él, le aparecerá la sigiente pagina
 
 ![imagen1](./imgs/img01.PNG)
 
-Una vez en el, debemos introducir los 3 ficheros que se nos indican en la pagina, los cuales son:
+Una vez en el, debemos introducir una serie de ficheros que se nos indican en la pagina, los cuales son:
 
-- **Archivo a procesar**, donde introducimos el fichero con el que queremos trabajar, se pueden obtener en el siguiente [enlace](https://github.com/ull-cs/gestion-conocimiento/tree/main/recommeder-systems/examples-documents)
+- **Archivo a procesar**, indican los ficheros con los que queremos trabajar, los cuales, se pueden obtener en el siguiente [enlace](https://github.com/ull-cs/gestion-conocimiento/tree/main/recommeder-systems/examples-documents)  
+
+> [!INFO]  
+> Concretamente en este apartado se recomienda que se aporten mas de un fichero para que los calculos no salgan con valor 0.
+
 - **Stop-Words**, es un fichero que nos permite filtrar que palabras del texto se pueden saltar del calculo. Este fichero se puede conseguir en el siguiente [enlace](https://github.com/ull-cs/gestion-conocimiento/tree/main/recommeder-systems/stop-words)
 - **Corpus**, es un fichero que nos permite lematizar los terminos de nuestro texto, permitiendo que a la hora colocar las _palabras mayores_ no resulte en diferentes palabra que se refieren a lo mismo. Dicho fichero se puede obtener en el siguiente [enlace](https://github.com/ull-cs/gestion-conocimiento/tree/main/recommeder-systems/corpus) 
 
 > [!WARNING]  
-> En los tres archivos que vamos a introducir, se requiere que los tres esten escritos en el mismo idioma, para que la aplicación funcione correctamente.
+> Sobre los archivos que vamos a introducir, se requiere que los tres esten escritos en el mismo idioma, para que la aplicación funcione correctamente.
 
-Tras ello, debemos completar las opciones que aparecen:
-
-Tras seleccionar los ajustes, se accede al calculo, y por un lado aparece la pantalla con el resultado del calculo
-
-![imagen2](falta por poner)
-
-Ademas de que automaticamente, se descarga un fichero con el contenido del calculo.
+Al colocar los ficheros pertinentes, simplemente podemos ejecutar el programa y este nos dara un fichero llamado **_salida.json_**
+donde podemos leer los diferentes parametros pedidos en la practica, y al final del fichero, podemos encontrar el calculo entre las similitudes entre los 
+ficheros que pasamos para procesar.
 
 ---
 
