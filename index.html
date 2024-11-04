@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesar Archivo</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    
+    <div class="container mt-5">
+        <h1 class="mb-4">Procesar Archivo</h1>
+
+        <div class="form-group col-md-6">
+            <label for="fileInput">Selecciona el archivo a procesar:</label>
+            <div class="custom-file">
+                <input type="file" class="custom-file-input" id="fileInput" accept=".txt"/>
+                <label class="custom-file-label" for="fileInput">Elige un archivo...</label>
+            </div>
+        </div>
+
+        <div class="form-group col-md-6">
+            <label for="stopWordsInput">Selecciona el archivo de palabras de parada:</label>
+            <div class="custom-file">
+                <input type="file" class="custom-file-input" id="stopWordsInput" accept=".txt"/>
+                <label class="custom-file-label" for="stopWordsInput">Elige un archivo...</label>
+            </div>
+        </div>
+
+        <div class="form-group col-md-6">
+            <label for="lemmatizationInput">Selecciona el archivo de lematización:</label>
+            <div class="custom-file">
+                <input type="file" class="custom-file-input" id="lemmatizationInput" accept=".txt"/>
+                <label class="custom-file-label" for="lemmatizationInput">Elige un archivo...</label>
+            </div>
+        </div>
+
+
+        <div class="form-group col-md-6">
+            <button id="processButton" class="btn btn-primary">Procesar</button>
+        </div>
+    </div>
+
+    <script>
+         // Actualiza la etiqueta del archivo seleccionado
+         document.getElementById("fileInput").addEventListener("change", function () {
+            const fileName = this.files[0] ? this.files[0].name : "Elige un archivo...";
+            const label = this.nextElementSibling;
+            label.innerText = fileName; // Cambia el texto del label al nombre del archivo
+        });
+
+         // Actualiza la etiqueta del archivo seleccionado
+         document.getElementById("stopWordsInput").addEventListener("change", function () {
+            const fileName = this.files[0] ? this.files[0].name : "Elige un archivo...";
+            const label = this.nextElementSibling;
+            label.innerText = fileName; // Cambia el texto del label al nombre del archivo
+        });
+
+         // Actualiza la etiqueta del archivo seleccionado
+         document.getElementById("lemmatizationInput").addEventListener("change", function () {
+            const fileName = this.files[0] ? this.files[0].name : "Elige un archivo...";
+            const label = this.nextElementSibling;
+            label.innerText = fileName; // Cambia el texto del label al nombre del archivo
+        });
+
+
+        let stopWords = [];
+        let lemmatizationDict = {};
+
+        // Función para cargar archivos de palabras de parada
+        function cargarStopWords(content) {
+            stopWords = content.split('\n').map(word => word.trim()).filter(Boolean); // Eliminar líneas vacías
+        }
+
+        // Función para cargar el diccionario de lematización
+        function cargarLematizacion(content) {
+            lemmatizationDict = JSON.parse(content);
+        }
+
+        // Función para comprobar si una palabra es una stop word
+        function esStopWord(palabra) {
+            return stopWords.includes(palabra);
+        }
+
+        // Función para lematizar una palabra
+        function lematizar(palabra) {
+            return lemmatizationDict[palabra] || palabra; // Retorna la palabra lematizada o la original
+        }
+
+        // Función que se ejecuta al pulsar el botón de procesar
+        document.getElementById('processButton').addEventListener('click', function() {
+            const stopWordsInput = document.getElementById('stopWordsInput');
+            const lemmatizationInput = document.getElementById('lemmatizationInput');
+            const fileInput = document.getElementById('fileInput');
+
+            // Validar que se hayan seleccionado todos los archivos
+            if (stopWordsInput.files.length === 0 || lemmatizationInput.files.length === 0 || fileInput.files.length === 0) {
+                alert('Por favor, selecciona todos los archivos necesarios.');
+                return;
+            }
+
+            // Cargar las palabras de parada
+            const stopWordsReader = new FileReader();
+            stopWordsReader.onload = function(event) {
+                cargarStopWords(event.target.result); // Cargar stop words
+
+                // Cargar el diccionario de lematización
+                const lemmatizationReader = new FileReader();
+                lemmatizationReader.onload = function(event) {
+                    cargarLematizacion(event.target.result); // Cargar lematización
+
+                    // Procesar el archivo seleccionado
+                    const mainFileReader = new FileReader();
+                    mainFileReader.onload = function(event) {
+                        const mainFileContent = event.target.result; // Contenido del archivo principal
+                        const palabras = mainFileContent.split(/\s+/); // Divide el contenido en palabras
+                        const resultados = {}; // Objeto para almacenar los resultados
+
+                        palabras.forEach(palabra => {
+                            const palabraLower = palabra.toLowerCase(); // Convertir palabra a minúscula
+                            if (!esStopWord(palabraLower)) {
+                                const lematizada = lematizar(palabraLower);
+                                resultados[lematizada] = (resultados[lematizada] || 0) + 1; // Contar la palabra lematizada
+                            }
+                        });
+
+                        console.log(resultados); // Muestra el resultado en la consola
+                    };
+
+                    mainFileReader.onerror = function(event) {
+                        alert('Error al leer el archivo: ' + event.target.error.code);
+                    };
+
+                    // Leer el archivo principal
+                    mainFileReader.readAsText(fileInput.files[0]); 
+                };
+
+                lemmatizationReader.onerror = function(event) {
+                    alert('Error al leer el archivo de lematización: ' + event.target.error.code);
+                };
+
+                // Leer el archivo de lematización
+                lemmatizationReader.readAsText(lemmatizationInput.files[0]); 
+            };
+
+            stopWordsReader.onerror = function(event) {
+                alert('Error al leer el archivo de palabras de parada: ' + event.target.error.code);
+            };
+
+            // Leer el archivo de palabras de parada
+            stopWordsReader.readAsText(stopWordsInput.files[0]); 
+        });
+    </script>
+</body>
+</html>
