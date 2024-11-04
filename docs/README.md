@@ -39,9 +39,12 @@ El objetivo de esta práctica es implementar un sistema de recomendación siguie
 Para poder utilizar nuestra herramienta, debe acceder al siguente [enlace](falta ponerlo aun), 
 y en él, le aparecerá la sigiente pagina
 
-![imagen1](falta ponerlo aun)
+![imagen1](./imgs/img01.PNG)
 
 Desde ahi, debemos escoger uno de los ficheros de pruebas aportado en el siguiente [enlace](https://github.com/ull-cs/gestion-conocimiento/tree/main/recommeder-systems/examples-documents)
+
+> [!WARNING]  
+> En los tres archivos que vamos a introducir, se requiere que los tres esten escritos en el mismo idioma, para que la aplicación funcione correctamente.
 
 Tras ello, debemos completar las opciones que aparecen:
 
