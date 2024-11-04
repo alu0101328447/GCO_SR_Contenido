@@ -12,10 +12,10 @@
         <h1 class="mb-4">Procesar Archivo</h1>
 
         <div class="form-group col-md-6">
-            <label for="fileInput">Selecciona el archivo a procesar:</label>
+            <label for="fileInput">Selecciona los archivos a procesar:</label>
             <div class="custom-file">
-                <input type="file" class="custom-file-input" id="fileInput" accept=".txt"/>
-                <label class="custom-file-label" for="fileInput">Elige un archivo...</label>
+                <input type="file" class="custom-file-input" id="fileInput" accept=".txt" multiple/>
+                <label class="custom-file-label" for="fileInput">Elige los archivos...</label>
             </div>
         </div>
 
@@ -41,25 +41,19 @@
     </div>
 
     <script>
-         // Actualiza la etiqueta del archivo seleccionado
          document.getElementById("fileInput").addEventListener("change", function () {
-            const fileName = this.files[0] ? this.files[0].name : "Elige un archivo...";
             const label = this.nextElementSibling;
-            label.innerText = fileName; // Cambia el texto del label al nombre del archivo
+            label.innerText = this.files.length ? `${this.files.length} archivos seleccionados` : "Elige un archivo...";
         });
 
-        // Actualiza la etiqueta del archivo seleccionado
         document.getElementById("stopWordsInput").addEventListener("change", function () {
             const fileName = this.files[0] ? this.files[0].name : "Elige un archivo...";
-            const label = this.nextElementSibling;
-            label.innerText = fileName; // Cambia el texto del label al nombre del archivo
+            this.nextElementSibling.innerText = fileName;
         });
 
-        // Actualiza la etiqueta del archivo seleccionado
         document.getElementById("lemmatizationInput").addEventListener("change", function () {
             const fileName = this.files[0] ? this.files[0].name : "Elige un archivo...";
-            const label = this.nextElementSibling;
-            label.innerText = fileName; // Cambia el texto del label al nombre del archivo
+            this.nextElementSibling.innerText = fileName;
         });
 
         class PalabrasManager {
@@ -68,6 +62,7 @@
                 this.lemmatizationDict = {};
                 this.resultados = {};
                 this.total = 0;
+                this.idf = {}; 
             }
 
             cargarStopWords(content) {
@@ -87,73 +82,92 @@
             }
 
             procesarArchivo(content) {
-                // Elimina signos de puntuación excepto el apóstrofe y divide el contenido en palabras
-                const palabras = content.replace(/[.,;!?()""]/g, '').split(/\s+/).filter(Boolean); // Divide el contenido en palabras
+                const palabras = content.replace(/[.,;!?()""]/g, '').split(/\s+/).filter(Boolean);
                 this.total = 0;
 
                 palabras.forEach((palabra, indice) => {
-                    const palabraLower = palabra.toLowerCase(); // Convertir a minúscula
+                    const palabraLower = palabra.toLowerCase();
 
-                    // Comprobar si no es una stop word
                     if (!this.esStopWord(palabraLower)) {
                         const lematizada = this.lematizar(palabraLower);
 
-                        // Comprobar si la palabra lematizada ya existe en resultados
                         if (!this.resultados[lematizada]) {
-                            this.resultados[lematizada] = { count: 0, index: indice }; // Guardar el índice de la primera aparición
+                            this.resultados[lematizada] = { count: 0, index: indice };
                         }
-                        this.resultados[lematizada].count += 1; // Incrementar el contador
-                        this.total ++;
+                        this.resultados[lematizada].count += 1;
+                        this.total++;
                     }
                 });
+            }
+
+            calcularIDF(documentos) {
+                const N = documentos.length;
+                const documentoFrecuencia = {};
+
+                documentos.forEach(content => {
+                    const palabrasUnicas = new Set(content.replace(/[.,;!?()""]/g, '').split(/\s+/).map(palabra => this.lematizar(palabra.toLowerCase())).filter(Boolean));
+
+                    palabrasUnicas.forEach(palabra => {
+                        if (!this.esStopWord(palabra)) {
+                            documentoFrecuencia[palabra] = (documentoFrecuencia[palabra] || 0) + 1;
+                        }
+                    });
+                });
+
+                for (const [palabra, dfx] of Object.entries(documentoFrecuencia)) {
+                    this.idf[palabra] = Math.log(N / dfx);
+                }
+
+                console.log("IDF Calculado:", this.idf); 
             }
         }
 
         const palabrasManager = new PalabrasManager();
 
-        // Función que se ejecuta al pulsar el botón de procesar
         document.getElementById('processButton').addEventListener('click', function() {
             const stopWordsInput = document.getElementById('stopWordsInput');
             const lemmatizationInput = document.getElementById('lemmatizationInput');
             const fileInput = document.getElementById('fileInput');
 
-            // Validar que se hayan seleccionado todos los archivos
             if (stopWordsInput.files.length === 0 || lemmatizationInput.files.length === 0 || fileInput.files.length === 0) {
                 alert('Por favor, selecciona todos los archivos necesarios.');
                 return;
             }
 
-            // Cargar las palabras de parada
+            const documentos = [];
+
             const stopWordsReader = new FileReader();
             stopWordsReader.onload = function(event) {
-                palabrasManager.cargarStopWords(event.target.result); // Cargar stop words
+                palabrasManager.cargarStopWords(event.target.result);
 
-                // Cargar el diccionario de lematización
                 const lemmatizationReader = new FileReader();
                 lemmatizationReader.onload = function(event) {
-                    palabrasManager.cargarLematizacion(event.target.result); // Cargar lematización
+                    palabrasManager.cargarLematizacion(event.target.result);
 
-                    // Procesar el archivo seleccionado
-                    const mainFileReader = new FileReader();
-                    mainFileReader.onload = function(event) {
-                        const mainFileContent = event.target.result; // Contenido del archivo principal
-                        palabrasManager.procesarArchivo(mainFileContent); // Procesar archivo
-                        console.log(palabrasManager.resultados); // Muestra el resultado en la consola
-                    };
+                    Array.from(fileInput.files).forEach((file, index) => {
+                        const mainFileReader = new FileReader();
+                        mainFileReader.onload = function(event) {
+                            const mainFileContent = event.target.result;
+                            documentos.push(mainFileContent);
+                            
+                            if (documentos.length === fileInput.files.length) {
+                                palabrasManager.calcularIDF(documentos);
+                                console.log("Resultados IDF:", palabrasManager.idf); 
+                            }
+                        };
 
-                    mainFileReader.onerror = function(event) {
-                        alert('Error al leer el archivo: ' + event.target.error.code);
-                    };
+                        mainFileReader.onerror = function(event) {
+                            alert('Error al leer el archivo: ' + event.target.error.code);
+                        };
 
-                    // Leer el archivo principal
-                    mainFileReader.readAsText(fileInput.files[0]); 
+                        mainFileReader.readAsText(file);
+                    });
                 };
 
                 lemmatizationReader.onerror = function(event) {
                     alert('Error al leer el archivo de lematización: ' + event.target.error.code);
                 };
 
-                // Leer el archivo de lematización
                 lemmatizationReader.readAsText(lemmatizationInput.files[0]); 
             };
 
@@ -161,7 +175,6 @@
                 alert('Error al leer el archivo de palabras de parada: ' + event.target.error.code);
             };
 
-            // Leer el archivo de palabras de parada
             stopWordsReader.readAsText(stopWordsInput.files[0]); 
         });
     </script>
