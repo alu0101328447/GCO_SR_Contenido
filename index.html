@@ -88,12 +88,12 @@
                 const resultadosDoc = {};
                 const palabras = content.replace(/[.,;!?()""]/g, '').split(/\s+/).filter(Boolean);
 
-                palabras.forEach(palabra => {
+                palabras.forEach((palabra, idx) => {
                     const palabraLower = palabra.toLowerCase();
                     if (!this.esStopWord(palabraLower)) {
                         const lematizada = this.lematizar(palabraLower);
                         if (!resultadosDoc[lematizada]) {
-                            resultadosDoc[lematizada] = { count: 0 };
+                            resultadosDoc[lematizada] = { count: 0, idx};
                         }
                         resultadosDoc[lematizada].count += 1;
                     }
@@ -178,8 +178,8 @@
                 const salida = {
                     documentos: this.documentos.map((resultadosDoc, docIndex) => ({
                         documento: docIndex + 1,
-                        terminos: Object.keys(resultadosDoc).map((termino, idx) => ({
-                            indice: idx + 1,
+                        terminos: Object.keys(resultadosDoc).map(termino => ({
+                            indice: resultadosDoc[termino].idx + 1,
                             termino: termino,
                             TF: resultadosDoc[termino].frecuencia,
                             IDF: this.idf[termino] || 0,
@@ -197,11 +197,95 @@
                 a.click();
                 URL.revokeObjectURL(url);
             }
+
+            generarSalidaTarjetas() {
+                let salida = `
+                    <!DOCTYPE html>
+                    <html lang="es">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+                        <title>Resultados de Procesamiento de Documentos</title>
+                    </head>
+                    <body class="container my-4">
+                        <h1 class="text-center mb-4">Resultados de Procesamiento de Documentos</h1>
+                        <div class="row">
+                `;
+
+                this.documentos.forEach((resultadosDoc, docIndex) => {
+                    salida += `
+                        <div class="col-md-4 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Documento ${docIndex + 1}</h5>
+                                    <ul class="list-group list-group-flush">`;
+
+                    Object.entries(resultadosDoc).forEach(([termino, datos], idx) => {
+                        const index = datos.idx + 1;
+                        const tf = datos.frecuencia;
+                        const idf = this.idf[termino] || 0;
+                        const tfIdf = tf * idf;
+                        salida += `<li class="list-group-item">
+                                        <strong>${index}.- ${termino}:</strong> TF: ${tf.toFixed(2)}, IDF: ${idf.toFixed(2)}, TF-IDF: ${tfIdf.toFixed(2)}
+                                </li>`;
+                    });
+
+                    salida += `
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+
+                salida += `
+                        </div>
+                        <hr class="my-4">
+                        <h2 class="text-center mb-4">Matriz de Similitud Coseno</h2>
+                        <div class="table-responsive">
+                            <table class="table table-bordered text-center">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Documento</th>`;
+
+                // Cabecera de la tabla para mostrar todos los documentos
+                for (let i = 0; i < this.documentos.length; i++) {
+                    salida += `<th>Doc ${i + 1}</th>`;
+                }
+                salida += `</tr></thead><tbody>`;
+
+                // Filas de la tabla para la matriz completa
+                for (let i = 0; i < this.documentos.length; i++) {
+                    salida += `<tr><td><strong>Doc ${i + 1}</strong></td>`;
+
+                    for (let j = 0; j < this.documentos.length; j++) {
+                        // Obtener la similitud coseno
+                        const similitud = i === j ? 1 : (this.similitudesCoseno.find(sim => 
+                            (sim.docA === i + 1 && sim.docB === j + 1) || 
+                            (sim.docA === j + 1 && sim.docB === i + 1)) || { similitud: 0 }).similitud;
+                        salida += `<td>${similitud.toFixed(5)}</td>`;
+                    }
+                    salida += `</tr>`;
+                }
+                salida += `
+                        </div>
+                    </body></html>`;
+
+                const nuevaVentana = window.open("", "_blank");
+                nuevaVentana.document.write(salida);
+                nuevaVentana.document.close();
+            }
+
+
+
         }
 
-        const palabrasManager = new PalabrasManager();
+
+
+
 
         document.getElementById('processButton').addEventListener('click', function () {
+            const palabrasManager = new PalabrasManager();
             const stopWordsInput = document.getElementById('stopWordsInput');
             const lemmatizationInput = document.getElementById('lemmatizationInput');
             const fileInput = document.getElementById('fileInput');
@@ -235,6 +319,7 @@
                                 });
                                 palabrasManager.calcularSimilitudCoseno();
                                 palabrasManager.generarJsonSalida();
+                                palabrasManager.generarSalidaTarjetas();
                             }
                         };
                         fileReader.readAsText(file);
