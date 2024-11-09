@@ -332,7 +332,7 @@ generarJsonSalida() {
 }
 ```
 
-Para el resto del codigo, precisamente nos encargamos de enlazar los metodos descritos
+Para el resto del codigo, precisamente nos encargamos de enlazar los metodos descritos o describir el formato de la salida de los datos
 
 Por una parte, creamos un manager de _PalabrasManager_ para poder trabajar con los metodos descritos.
 
@@ -343,6 +343,7 @@ Luego, nos encargamos de recoger los diferentes ficheros y comprobando que han s
 
 ```javascript
 document.getElementById('processButton').addEventListener('click', function () {
+    const palabrasManager = new PalabrasManager();
     const stopWordsInput = document.getElementById('stopWordsInput');
     const lemmatizationInput = document.getElementById('lemmatizationInput');
     const fileInput = document.getElementById('fileInput');
@@ -351,6 +352,7 @@ document.getElementById('processButton').addEventListener('click', function () {
         alert('Por favor, selecciona todos los archivos necesarios.');
         return;
     }
+});
 ```
 
 Con esta parte del codigo, recogemos los documentos a procesar, y comenzamos a procesar las palabras vacias.
@@ -368,9 +370,9 @@ stopWordsReader.onload = function (event) {
 Dentro del lector de _stopWords_, una vez que el archivo de palabras vacías se ha cargado, se configura otro _FileReader_ para leer el archivo de lematización
 
 ```javascript
-    const lemmatizationReader = new FileReader();
-    lemmatizationReader.onload = function (event) {
-        palabrasManager.cargarLematizacion(event.target.result);
+const lemmatizationReader = new FileReader();
+lemmatizationReader.onload = function (event) {
+    palabrasManager.cargarLematizacion(event.target.result);
 ```
 
 Después de cargar las palabras vacías y la lematización, el código procede a leer múltiples archivos de texto en el elemento _fileInput_:
@@ -409,6 +411,87 @@ if (documentos.length === fileInput.files.length) {
 }
 ```
 
+Finalmente queda destacar la presentación de la información calculada, donde nos encargamos de colocar la información por tarjetas de bootstrap, lo que nos permite presentar la información de forma clara. Ahi introducimos todos los parametros que calculamos con las funciones anteriores, ademas de incluir un indice en cada terminno donde se cuenta donde aparece dicho termino por 1ª vez en el documento a analizar.
+
+```javascript
+
+generarSalidaTarjetas() {
+    let salida = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+            <title>Resultados de Procesamiento de Documentos</title>
+        </head>
+        <body class="container my-4">
+            <h1 class="text-center mb-4">Resultados de Procesamiento de Documentos</h1>
+            <div class="row">
+    `;
+
+    this.documentos.forEach((resultadosDoc, docIndex) => {
+        salida += `
+            <div class="col-md-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Documento ${docIndex + 1}</h5>
+                        <ul class="list-group list-group-flush">`;
+
+        Object.entries(resultadosDoc).forEach(([termino, datos], idx) => {
+            const index = datos.idx + 1;
+            const tf = datos.frecuencia;
+            const idf = this.idf[termino] || 0;
+            const tfIdf = tf * idf;
+            salida += `<li class="list-group-item">
+                            <strong>${index}.- ${termino}:</strong> TF: ${tf.toFixed(2)}, IDF: ${idf.toFixed(2)}, TF-IDF: ${tfIdf.toFixed(2)}
+                    </li>`;
+        });
+
+        salida += `
+                        </ul>
+                    </div>
+                </div>
+            </div>`;
+    });
+
+    salida += `
+            </div>
+            <hr class="my-4">
+            <h2 class="text-center mb-4">Matriz de Similitud Coseno</h2>
+            <div class="table-responsive">
+                <table class="table table-bordered text-center">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Documento</th>`;
+
+    for (let i = 0; i < this.documentos.length; i++) {
+        salida += `<th>Doc ${i + 1}</th>`;
+    }
+    salida += `</tr></thead><tbody>`;
+
+    for (let i = 0; i < this.documentos.length; i++) {
+        salida += `<tr><td><strong>Doc ${i + 1}</strong></td>`;
+
+        for (let j = 0; j < this.documentos.length; j++) {
+            const similitud = i === j ? 1 : (this.similitudesCoseno.find(sim => 
+                (sim.docA === i + 1 && sim.docB === j + 1) || 
+                (sim.docA === j + 1 && sim.docB === i + 1)) || { similitud: 0 }).similitud;
+            salida += `<td>${similitud.toFixed(5)}</td>`;
+        }
+        salida += `</tr>`;
+    }
+    salida += `
+            </div>
+        </body></html>`;
+
+    const nuevaVentana = window.open("", "_blank");
+    nuevaVentana.document.write(salida);
+    nuevaVentana.document.close();
+}
+
+```
+
 ---
 
 # 3. Ejemplo de uso
@@ -417,11 +500,14 @@ Para poder utilizar nuestra herramienta, debe acceder al siguente [enlace](https
 
 ![imagen1](./imgs/img01.PNG)
 
-Una vez en el, debemos introducir una serie de ficheros que se nos indican en la pagina, los cuales son:
+Una vez en él, debemos introducir una serie de ficheros que se nos indican en la pagina.
+Para obtener estos ficheros, se pueden utilizar los aportados en el propio [repositorio](../Data/), donde tenemos ejemplos de los 3 tipos de ficheros que se tienen que introducir, o por lo contrario, en los descripciones que hay a continuación, se pueden obtener los ficheros requeridos para el correcto funcionamiento de la pagina. 
+
+Los archivos requeridos para el correcto funcionamiento de la pagina son:
 
 - **Archivo a procesar**, indican los ficheros con los que queremos trabajar, los cuales, se pueden obtener en el siguiente [enlace](https://github.com/ull-cs/gestion-conocimiento/tree/main/recommeder-systems/examples-documents)  
 
-> [!INFO]  
+> [!NOTE]  
 > Concretamente en este apartado se recomienda que se aporten mas de un fichero para que los calculos no salgan con valor 0.
 
 - **Stop-Words**, es un fichero que nos permite filtrar que palabras del texto se pueden saltar del calculo. Este fichero se puede conseguir en el siguiente [enlace](https://github.com/ull-cs/gestion-conocimiento/tree/main/recommeder-systems/stop-words)
@@ -434,10 +520,24 @@ Al colocar los ficheros pertinentes, simplemente podemos ejecutar el programa y 
 donde podemos leer los diferentes parametros pedidos en la practica, y al final del fichero, podemos encontrar el calculo entre las similitudes entre los 
 ficheros que pasamos para procesar.
 
+Ademas, en pantalla obtenemos la siguiente salida: 
+
+![imagen2](./imgs/img02.PNG)
+
+En ella, podemos encontrar el mismo contenido que el fichero descargable, donde se presenta la información que se buscaba calcular sobre cada termino, ademas de que si nos movemos al final de la pagina, podemos encontrar la siguiente tabla:
+
+![imagen3](./imgs/img03.jpg)
+
+Lo que nos muestra el calculo de la similitud entre los diferentes ficheros. Cabe destacar que la tabla es simetrica por su diagonal principal, dado a que con nuestro calculo, lo mismo es comparar el _documento 1_ con el _documento 3_ e viceversa.
+
 ---
 
 # 4. Conclusiones
 
-Finalmente, con este apartado terminamos de explicar y comentar nuestra implementación de un sistemas de recomendación mediante los metodos de filtrado colaborativo.
+Finalmente, con este apartado terminamos de explicar y comentar nuestra implementación de un sistemas de recomendación mediante los metodos de filtrado colaborativo, los cuales, ofrecen ventajas como la personalización sin depender de la popularidad, la escalabilidad, y la privacidad. Son particularmente efectivos cuando se busca ofrecer recomendaciones de alta precisión a nuevos usuarios y en dominios que demandan adaptabilidad.
 
-Implementar un sistema de recomendación basado en el contenido tiene varias ventajas significativas, especialmente en entornos donde se manejan grandes volúmenes de datos y se busca personalizar la experiencia del usuario de manera efectiva.
+
+
+
+
+
